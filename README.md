@@ -40,10 +40,11 @@ Running this in a separate computer than Traktor is possible!
 ### Running
 - Clone or download the repository.
 - Prepare a Python environment with all dependencies from `requirements.txt`.
+- Enable debug with the `--debug` parameter or inside the `config.ini`.
 - Run `main.py` inside the Python environment.
 
 ## Endpoints
-The web server contains these endpoints (By default at port 8080):
+The HTTP server contains these endpoints (By default at port 8080):
 
 - `/media` - GET static video files with range request support.
 - `/player/{deck}` - GET a HTML player for the deck.

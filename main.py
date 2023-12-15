@@ -239,7 +239,12 @@ async def main():
     parser.add_argument('--cors_domains', dest='cors_domains', default=config.get('http', 'cors_domains', fallback='*'))
     parser.add_argument('--ws_bind_address', dest='ws_bind_address', default=config.get('ws', 'bind_to_address', fallback='0.0.0.0'))
     parser.add_argument('--ws_bind_port', dest='ws_bind_port', type=int, default=config.get('ws', 'bind_to_port', fallback=8081))
+    parser.add_argument('--debug', dest='enable_debug', action='store_true', default=config.getboolean('log', 'debug', fallback=0))
     args = parser.parse_args()
+
+    if args.enable_debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug('DEBUG logging enabled.')
 
     global httpAddress
     httpAddress = args.http_bind_address
@@ -278,18 +283,16 @@ async def main():
     ws.run_forever(True)
     logging.info('Websocket Server Running: {}:{}'.format(wsAddress, wsPort))
 
-    # Set up the Web server
+    # Set up the HTTP server
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, httpAddress, httpPort).start()
     logging.info('HTTP Server Running: {}:{}'.format(httpAddress, httpPort))
 
-    # Wait forever, running both the Web and Websocket server
+    # Wait forever, running both the HTTP and Websocket server
     await asyncio.Event().wait()
 
 try:
     asyncio.run(main())
 except KeyboardInterrupt:
-    # TODO - Graceful shutdown
-    # This is not graceful, we should cleanup the web server runner, disconnect Websocket clients and finish the Websocket thread.
-    print('Exiting...')
+    logging.info('Exiting...')
