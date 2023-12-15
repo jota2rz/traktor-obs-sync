@@ -25,12 +25,15 @@ jobs:
       - name: Run PyInstaller
         run: pyinstaller main.py --onefile --name traktor-obs-sync
 
+      - name: Move Portable Binary to Parent Folder
+        run: mv dist/traktor-obs-sync* ..
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: traktor-obs-sync-Windows
           path: |
-            dist/traktor-obs-sync*
+            traktor-obs-sync*
             player
             media
             config.ini
@@ -53,12 +56,15 @@ jobs:
       - name: Run PyInstaller
         run: pyinstaller main.py --onefile --name traktor-obs-sync
 
+      - name: Move Portable Binary to Parent Folder
+        run: mv dist/traktor-obs-sync* ..
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: traktor-obs-sync-Ubuntu
+          name: traktor-obs-sync-Windows
           path: |
-            dist/traktor-obs-sync*
+            traktor-obs-sync*
             player
             media
             config.ini
@@ -81,12 +87,15 @@ jobs:
       - name: Run PyInstaller
         run: pyinstaller main.py --onefile --name traktor-obs-sync
 
+      - name: Move Portable Binary to Parent Folder
+        run: mv dist/traktor-obs-sync* ..
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: traktor-obs-sync-MacOS
+          name: traktor-obs-sync-Windows
           path: |
-            dist/traktor-obs-sync*
+            traktor-obs-sync*
             player
             media
             config.ini
