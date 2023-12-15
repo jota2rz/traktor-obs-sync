@@ -29,7 +29,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: traktor-obs-sync-Windows
-          path: dist/traktor-obs-sync*
+          path: |
+            dist/traktor-obs-sync*
+            player
+            media
+            config.ini
   linux-build:
     name: 'Ubuntu Latest'
     runs-on: ubuntu-latest
@@ -53,7 +57,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: traktor-obs-sync-Ubuntu
-          path: dist/traktor-obs-sync*
+          path: |
+            dist/traktor-obs-sync*
+            player
+            media
+            config.ini
   macos-build:
     name: 'macOS Latest'
     runs-on: macos-latest
@@ -77,4 +85,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: traktor-obs-sync-MacOS
-          path: dist/traktor-obs-sync*
+          path: |
+            dist/traktor-obs-sync*
+            player
+            media
+            config.ini
