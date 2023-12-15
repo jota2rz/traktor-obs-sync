@@ -1,0 +1,80 @@
+name: 'Build Portable Binaries'
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  windows-build:
+    name: 'Windows Latest'
+    runs-on: windows-latest
+    if: contains(github.event.head_commit.message, '[skip ci]') != true
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.12
+
+      - name: Install Python Prerequisites
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Run PyInstaller
+        run: pyinstaller main.py --onefile --name traktor-obs-sync
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: traktor-obs-sync-Windows
+          path: dist/traktor-obs-sync*
+  linux-build:
+    name: 'Ubuntu Latest'
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[skip ci]') != true
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.12
+
+      - name: Install Python Prerequisites
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Run PyInstaller
+        run: pyinstaller main.py --onefile --name traktor-obs-sync
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: traktor-obs-sync-Ubuntu
+          path: dist/traktor-obs-sync*
+  macos-build:
+    name: 'macOS Latest'
+    runs-on: macos-latest
+    if: contains(github.event.head_commit.message, '[skip ci]') != true
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.12
+
+      - name: Install Python Prerequisites
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Run PyInstaller
+        run: pyinstaller main.py --onefile --name traktor-obs-sync
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: traktor-obs-sync-MacOS
+          path: dist/traktor-obs-sync*

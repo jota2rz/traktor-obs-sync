@@ -1,0 +1,19 @@
+body, html {
+    background: rgba(0, 0, 0, 0);
+    padding: 0;
+    margin: 0 !important;
+}
+
+#container {
+    width: 100%;
+    height: 100%;
+}
+
+#container > video {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0);
+    padding: 0;
+    margin: 0;
+}
