@@ -45,7 +45,7 @@ async function fetchDeckData(deck) {
         console.log('Initial deck data not loaded, deck is not initialized yet.');
         return JSON.stringify({})
     }
-    const data = await response.json();
+    const data = await response.text();
     console.log('Initial deck data loaded.');
     return data;
 }
@@ -76,19 +76,19 @@ async function fetchChannelData(deck) {
         console.log('Initial channel data not loaded, deck is not initialized yet.');
         return JSON.stringify({})
     }
-    const data = await response.json();
+    const data = await response.text();
     console.log('Initial channel data loaded.');
     return data;
 }
 
 async function fetchMasterClockData() {
-    fetchURL = location.protocol + '//' + location.host + '/masterClock/' + deck;
+    fetchURL = location.protocol + '//' + location.host + '/masterClock/';
     const response = await fetch(fetchURL);
     if (!response.ok) {
         console.log('Initial master clock data not loaded, it is not initialized yet.');
         return JSON.stringify({})
     }
-    const data = await response.json();
+    const data = await response.text();
     console.log('Initial master clock data loaded.');
     return data;
 }
@@ -96,7 +96,7 @@ async function fetchMasterClockData() {
 async function fetchWsInfo() {
     fetchURL = location.protocol + '//' + location.host + '/ws/';
     const response = await fetch(fetchURL);
-    const data = await response.json();
+    const data = await response.text();
     console.log('Websocket information obtained.')
     return data;
 }
@@ -162,9 +162,11 @@ function loadDeckVideo() {
 
 function checkCurrentScene() {
     sceneName = 'Deck ' + deck;
-    currentSceneName = window.obsstudio.getCurrentScene();
-    if (sceneName != currentSceneName && onAir)
-        window.obsstudio.setCurrentScene('Deck ' + deck);
+    if(window.obsstudio) {
+        currentSceneName = window.obsstudio.getCurrentScene();
+        if (sceneName != currentSceneName && onAir)
+            window.obsstudio.setCurrentScene('Deck ' + deck);
+    }
 
     /*  TODO FIX - This may require a PR for https://github.com/ErikMinekus/traktor-api-client
         'isOnAir' as TRUE is broadcasted for every channel that is LIVE at Traktor.
@@ -251,7 +253,8 @@ function processUpdateChannel(id, data) {
     if (onAir != channelData.isOnAir) {
         onAir = channelData.isOnAir
         if (onAir)
-            window.obsstudio.setCurrentScene('Deck ' + deck);
+            if(window.obsstudio)
+                window.obsstudio.setCurrentScene('Deck ' + deck);
     }
 
     /*  TODO FIX - This may require a PR for https://github.com/ErikMinekus/traktor-api-client

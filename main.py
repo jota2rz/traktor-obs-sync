@@ -153,13 +153,13 @@ async def get_deck(request):
         logging.info('Deck {} is not loaded.'.format(deck))
         return web.HTTPNotFound(reason='Deck {} is not loaded.'.format(deck))
 
-    responseData = json.dumps(vars(decks[deck]))
+    responseData = vars(decks[deck])
     logging.debug(responseData)
     return web.json_response(responseData)
 
 async def get_channel(request):
     clientIp = request.remote
-    channel = str(request.match_info.get('channel'))
+    channel = request.match_info.get('channel')
 
     logging.info('get_channel for channel {} | Client IP: {}'.format(channel, clientIp))    
 
@@ -167,15 +167,15 @@ async def get_channel(request):
         logging.info('Channel {} is not initialized.'.format(channel))
         return web.HTTPNotFound(reason='Channel {} is not initialized.'.format(channel))
 
-    responseData = json.dumps(vars(channels[channel]))
+    responseData = vars(channels[channel])
     logging.debug(responseData)
     return web.json_response(responseData)
 
 async def get_master_clock(request):
     clientIp = request.remote
-    logging.info('get_master_clock {} | Client IP: {}'.format(clientIp))
+    logging.info('get_master_clock | Client IP: {}'.format(clientIp))
 
-    responseData = json.dumps(vars(masterClock))
+    responseData = vars(masterClock)
     logging.debug(responseData)
     return web.json_response(responseData)
 
@@ -206,7 +206,7 @@ async def get_ws_info(request):
     if wsAddress == '0.0.0.0':
         address = '127.0.0.1'
 
-    responseData = json.dumps({ 'address': address, 'port': wsPort })
+    responseData = { 'address': address, 'port': wsPort }
     logging.debug(responseData)
     return web.json_response(responseData)
 
