@@ -1,6 +1,8 @@
 # traktor-obs-sync
 A Python-based program to help sync videos in OBS with Traktor Pro 3
 
+[![Build Portable Binaries](https://github.com/jota2rz/traktor-obs-sync/actions/workflows/main.yml/badge.svg)](https://github.com/jota2rz/traktor-obs-sync/actions/workflows/main.yml)
+
 ## Requirements
 - Python 3.12+
 - OBS 30.0.2+
