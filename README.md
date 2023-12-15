@@ -4,33 +4,47 @@ A Python-based program to help sync videos in OBS with Traktor Pro 3
 [![Build Portable Binaries](https://github.com/jota2rz/traktor-obs-sync/actions/workflows/main.yml/badge.svg)](https://github.com/jota2rz/traktor-obs-sync/actions/workflows/main.yml)
 
 ## Requirements
-- Python 3.12+
-- OBS 30.0.2+
+- OBS 30.0.2+ (optional)
 - Traktor Pro 3
 - [traktor-api-client](https://github.com/ErikMinekus/traktor-api-client)
 
 ## Installing
-- Clone or download the repository.
+- Download the latest release from [Releases](https://github.com/jota2rz/traktor-obs-sync/releases).
+- Extract all the content.
 - Edit `config.ini` if you have special requirements for binding addresses and ports.
-- Run `main.py` with your favorite Python environment.
+- Run the executable file.
 
-Use `main.py --help` to see command line options, which allow you to run this application without a `config.ini`.
+Pass `--help` as a parameter to see command line options, which allow you to run this application without a `config.ini`.
 
 ## How to use
+### With OBS
 The following instructions uses default settings and under the scenario of running everything in the same computer.
 Running this in a separate computer than Traktor is possible!
 
-- Place your video media files inside the `/media` folder, filename must be the same as the song filename loaded in Traktor. e.g. `Miku - Anamanaguchi.mp3` must be `Miku - Anamanaguchi.webm` or `Miku - Anamanaguchi.mp4`. Only `.webm` and `.mp4` is supported.
 - Follow the installing instructions and get the application running.
+- Place your video media files inside the `/media` folder, filename must be the same as the song filename loaded in Traktor. e.g. `Miku - Anamanaguchi.mp3` must be `Miku - Anamanaguchi.webm` or `Miku - Anamanaguchi.mp4`. Only `.webm` and `.mp4` is supported.
 - Open Traktor Pro 3.
 - Open OBS.
 - Configure one scene per deck you want to handle in OBS and name it as `Deck {deck}`. e.g. `Deck A` and `Deck B`.
 - Inside each scene create a browser source with any name, point it to the endpoint `/player/{deck}` and Page permissions to `Advanced access to OBS`. e.g. `http://localhost:8080/player/A` and `http://localhost:8080/player/B`
-- Start mixing in Traktor Pro 3 and you will see how each scene displays each deck video in sync and the active scene transitions automatically based of Traktor crossfader. 
+- Start mixing in Traktor Pro 3 and you will see how each scene displays each deck video in sync and the active scene transitions automatically based of Traktor crossfader.
+
+### Without OBS
+- Follow the instructions above up to opening Traktor Pro 3.
+- Point your browser to the endpoint `/player/{deck}`. e.g. `http://localhost:8080/player/A` or `http://localhost:8080/player/B`
+
+## Developers
+### Requirements
+- Python 3.12+
+
+### Running
+- Clone or download the repository.
+- Prepare a Python environment with all dependencies from `requirements.txt`.
+- Run `main.py` inside the Python environment.
 
 ## Endpoints
-The web server contains these endpoints:
-(By default at port 8080)
+The web server contains these endpoints (By default at port 8080):
+
 - `/media` - GET static video files with range request support.
 - `/player/{deck}` - GET a HTML player for the deck.
 - `/deck/{deck}` - GET deck data as JSON.
@@ -44,17 +58,16 @@ The following is used by `traktor-api-client` and you should not send data manua
 - `/updateMasterClock` - POST master clock updates from Traktor.
 - `/updateChannel/{channel}` - POST channel updates from Traktor.
 
-Connecting to the Websocket server broadcasts all data updates from Traktor as JSON with the following format:
-(By default at port 8081)
+The websocket server broadcasts all events from Traktor as `JSON` with the same name as the `POST` endpoints under the following format (By default at port 8081):
 
-With `id` for `/deck/` and `/channel/` endpoints:
+With `id` for `deckLoaded`, `updateDeck` and `updateChannel` events:
 ```
-{ "event": <EVENT NAME SAME AS POST ENDPOINTS>, "id": <ID OF DECK OR CHANNEL>, "data": <JSON DATA FROM TRAKTOR> }
+{ "event": "<EVENT NAME>", "id": "<ID OF DECK OR CHANNEL>", "data": <JSON DATA FROM TRAKTOR> }
 ```
 
-Without `id` for `/masterClock/` and `/ws/` endpoints:
+Without `id` for `updateMasterClock` event:
 ```
-{ "event": <EVENT NAME SAME AS POST ENDPOINTS>, "data": <JSON DATA FROM TRAKTOR> }
+{ "event": "<EVENT NAME SAME AS POST ENDPOINTS>", "data": <JSON DATA FROM TRAKTOR> }
 ```
 
 ## Troubleshooting
@@ -70,4 +83,3 @@ If you have configured the application to run in another computer make sure the 
 Based on the following repositories:
 - https://github.com/vladkorotnev/traktor-obs-relay
 - https://github.com/IRLToolkit/obs-websocket-http
-
