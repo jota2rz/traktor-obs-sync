@@ -31,6 +31,7 @@ jobs:
           name: traktor-obs-sync-Windows
           path: |
             traktor-obs-sync*
+            !*.spec
             player
             media
             config.ini
@@ -59,6 +60,7 @@ jobs:
           name: traktor-obs-sync-Ubuntu
           path: |
             traktor-obs-sync*
+            !*.spec
             player
             media
             config.ini
@@ -87,6 +89,7 @@ jobs:
           name: traktor-obs-sync-MacOS
           path: |
             traktor-obs-sync*
+            !*.spec
             player
             media
             config.ini
