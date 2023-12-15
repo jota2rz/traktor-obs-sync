@@ -29,7 +29,7 @@ Running this in a separate computer than Traktor is possible!
 ## Endpoints
 The web server contains these endpoints:
 (By default at port 8080)
-- `/media` - GET static video files.
+- `/media` - GET static video files with range request support.
 - `/player/{deck}` - GET a HTML player for the deck.
 - `/deck/{deck}` - GET deck data as JSON.
 - `/channel/{channel}` - GET channel data as JSON.
@@ -42,8 +42,18 @@ The following is used by `traktor-api-client` and you should not send data manua
 - `/updateMasterClock` - POST master clock updates from Traktor.
 - `/updateChannel/{channel}` - POST channel updates from Traktor.
 
-Connecting to the Websocket server broadcasts all data updates from Traktor as JSON.
+Connecting to the Websocket server broadcasts all data updates from Traktor as JSON with the following format:
 (By default at port 8081)
+
+With `id` for `/deck/` and `/channel/` endpoints:
+```
+{ "event": <EVENT NAME SAME AS POST ENDPOINTS>, "id": <ID OF DECK OR CHANNEL>, "data": <JSON DATA FROM TRAKTOR> }
+```
+
+Without `id` for `/masterClock/` and `/ws/` endpoints:
+```
+{ "event": <EVENT NAME SAME AS POST ENDPOINTS>, "data": <JSON DATA FROM TRAKTOR> }
+```
 
 ## Troubleshooting
 If you receive errors about CORS and not having `Access-Control-Allow-Origin` header for the endpoint, be sure to modify `config.ini` to properly set `cors_domains`.
