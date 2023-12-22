@@ -1,4 +1,7 @@
 import logging
+import os
+import signal
+from threading import Thread
 logging.basicConfig(level=logging.INFO)
 import argparse
 import asyncio
@@ -7,6 +10,7 @@ from websocket_server import WebsocketServer
 from aiohttp import web
 import aiohttp_cors
 from configparser import ConfigParser
+from readchar import readkey
 
 class Deck:
     def __init__(self):
@@ -35,15 +39,30 @@ class Deck:
 
 class Channel:
     def __init__(self):
-        self.isOnAir = False
+        #self.isOnAir = False
+        self.volume = 1
+        #self.xfaderAssignLeft = False
+        #self.xfaderAssignRight = False
+        self.xfaderAdjust = 0.5
 
 class MasterClock:
     def __init__(self):
         self.deck = None
-        #self.bpm = 0
+        self.bpm = 0
+
+
+channels = {}
+channels['1'] = Channel()
+channels['2'] = Channel()
+channels['3'] = Channel()
+channels['4'] = Channel()
 
 decks = {}
-channels = {}
+decks["A"] = Deck()
+decks["B"] = Deck()
+decks["C"] = Deck()
+decks["D"] = Deck()
+
 masterClock = MasterClock()
 
 # Make aiohttp shut up
@@ -86,8 +105,7 @@ async def process_deck_loaded(request):
 
     broadcastData = create_broadcast_data('deckLoaded', requestData, deck)
     ws.send_message_to_all(broadcastData)
-    
-    
+
 async def process_update_deck(request):
     clientIp = request.remote
     deck = request.match_info.get('deck')
@@ -210,6 +228,21 @@ async def get_ws_info(request):
     logging.debug(responseData)
     return web.json_response(responseData)
 
+async def get_config(request):
+    clientIp = request.remote
+    logging.info('get_settings | Client IP: {}'.format(clientIp))
+
+    responseData = { "channel_1": channel_1, 
+                     "channel_2": channel_2, 
+                     "channel_3": channel_3, 
+                     "channel_4": channel_4, 
+                     "auto_scene": auto_scene, 
+                     "max_delay_ms": max_delay_ms, 
+                     "media_uri": media_uri }
+    
+    logging.debug(responseData)
+    return web.json_response(responseData)
+
 def ws_new_client(client, server):
 	logging.info('Client connected to Websocket Server | Client ID: {} | Client Address: {}'.format(client['id'], client['address']))
 
@@ -227,6 +260,25 @@ def setup_cors(corsDomains):
     for route in list(app.router.routes()):
         cors.add(route)
 
+def toggle_obs_scene(status):
+    broadcastData = create_broadcast_data('toggleOBS', { "status": status }, None)
+    ws.send_message_to_all(broadcastData)
+
+def await_command():
+    try:        
+        while True:
+            k = readkey()
+            if k == "e":
+                toggle_obs_scene('enable')
+                logging.info('OBS automatic scene change enabled.')
+            if k == "d":
+                toggle_obs_scene('disable')
+                logging.info('OBS automatic scene change disabled.')
+    except (KeyboardInterrupt, SystemExit):
+        logging.info('Exiting...')
+        os.kill(os.getpid(),signal.SIGTERM)
+
+
 async def main():
 
     config = ConfigParser()
@@ -239,12 +291,25 @@ async def main():
     parser.add_argument('--cors_domains', dest='cors_domains', default=config.get('http', 'cors_domains', fallback='*'))
     parser.add_argument('--ws_bind_address', dest='ws_bind_address', default=config.get('ws', 'bind_to_address', fallback='0.0.0.0'))
     parser.add_argument('--ws_bind_port', dest='ws_bind_port', type=int, default=config.get('ws', 'bind_to_port', fallback=8081))
+    
+    parser.add_argument('--channel_1', dest='channel_1', default=config.get('channel', '1', fallback='A'))
+    parser.add_argument('--channel_2', dest='channel_2', default=config.get('channel', '2', fallback='B'))
+    parser.add_argument('--channel_3', dest='channel_3', default=config.get('channel', '3', fallback='C'))
+    parser.add_argument('--channel_4', dest='channel_4', default=config.get('channel', '4', fallback='D'))
+
+    parser.add_argument('--auto_scene', dest='auto_scene', action='store_true', default=config.getboolean('obs', 'auto_scene', fallback=1))
+
+    parser.add_argument('--max_delay_ms', dest='max_delay_ms', type=int, default=config.get('player', 'max_delay_ms', fallback=300))
+    parser.add_argument('--media_uri', dest='media_uri', default=config.get('player', 'media_uri', fallback='../media/'))
+
     parser.add_argument('--debug', dest='enable_debug', action='store_true', default=config.getboolean('log', 'debug', fallback=0))
+
     args = parser.parse_args()
 
     if args.enable_debug:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.debug('DEBUG logging enabled.')
+
 
     global httpAddress
     httpAddress = args.http_bind_address
@@ -255,6 +320,21 @@ async def main():
     wsAddress = args.ws_bind_address
     global wsPort
     wsPort = args.ws_bind_port
+
+    global channel_1
+    channel_1 = args.channel_1
+    global channel_2
+    channel_2 = args.channel_2
+    global channel_3
+    channel_3 = args.channel_3
+    global channel_4
+    channel_4 = args.channel_4
+    global auto_scene
+    auto_scene = args.auto_scene
+    global max_delay_ms
+    max_delay_ms = args.max_delay_ms
+    global media_uri
+    media_uri = args.media_uri
 
     logging.info('CORS Domains Accepted: {}'.format(", ".join(corsDomains)))
 
@@ -268,6 +348,7 @@ async def main():
         web.get('/channel/{channel}', get_channel),
         web.get('/masterClock/', get_master_clock),
         web.get('/ws/', get_ws_info),
+        web.get('/config/', get_config),
         web.post('/deckLoaded/{deck}', process_deck_loaded),
         web.post('/updateDeck/{deck}', process_update_deck),
         web.post('/updateMasterClock', process_update_master_clock),
@@ -289,10 +370,9 @@ async def main():
     await web.TCPSite(runner, httpAddress, httpPort).start()
     logging.info('HTTP Server Running: {}:{}'.format(httpAddress, httpPort))
 
-    # Wait forever, running both the HTTP and Websocket server
-    await asyncio.Event().wait()
+    command = Thread(daemon=True, target=await_command)
+    command.start()
 
-try:
-    asyncio.run(main())
-except KeyboardInterrupt:
-    logging.info('Exiting...')
+    # Wait forever, running both the HTTP and Websocket server
+    await asyncio.Event().wait()        
+asyncio.run(main())
