@@ -2,3 +2,4 @@ aiohttp
 configparser
 aiohttp_cors
 websocket-server
+readchar

@@ -5,33 +5,50 @@ Object.defineProperty(HTMLMediaElement.prototype, 'playing', {
     }
 })
 
-const MEDIA_URI = "../media/";
+var MEDIA_URI;
 var player;
-var deckData;
-var channelData;
-var masterClockData;
+var deckData = {};
+var channelData = {};
+var masterClockData = {};
 
 // Very hackish way of getting the deck ID
-var deck = window.location.pathname.split("/").pop();
-var channel;
-var onAir = false;
+var thisDeck = window.location.pathname.split("/").pop();
+var thisChannel;
 
 var wsInfo;
+var config;
 
 document.addEventListener("DOMContentLoaded", function(event) {
-    console.log('Initializing player for deck ' + deck);
-    console.log('Fetching initial deck data...');
+    console.log('Initializing player for deck ' + thisDeck + '.');
 
     // I know this is awkward but I have no idea how to await for each fetch.
-    fetchDeckData(deck).then(data => {
-        deckData = JSON.parse(data);
-        fetchChannelData(deck).then(data => {
-            channelData = JSON.parse(data);
-            fetchWsInfo().then(data => {
-                wsInfo = JSON.parse(data);
-                fetchMasterClockData().then(data => {
-                    masterClockData = JSON.parse(data);
-                    main();
+    fetchDeckData('A').then(data => {
+        deckData['A'] = JSON.parse(data);
+        fetchDeckData('B').then(data => {
+            deckData['B'] = JSON.parse(data);
+            fetchDeckData('C').then(data => {
+                deckData['C'] = JSON.parse(data);
+                fetchDeckData('D').then(data => {
+                    deckData['D'] = JSON.parse(data);
+                    fetchChannelData('1').then(data => {
+                        channelData['1'] = JSON.parse(data);
+                        fetchChannelData('2').then(data => {
+                            channelData['2'] = JSON.parse(data);
+                            fetchChannelData('3').then(data => {
+                                channelData['3'] = JSON.parse(data);
+                                fetchChannelData('4').then(data => {
+                                    channelData['4'] = JSON.parse(data);
+                                        fetchWsInfo().then(data => {
+                                            wsInfo = JSON.parse(data);
+                                            fetchConfig().then(data => {
+                                                config = JSON.parse(data);
+                                                main();
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
                 });
             });
         });
@@ -42,42 +59,23 @@ async function fetchDeckData(deck) {
     fetchURL = location.protocol + '//' + location.host + '/deck/' + deck;
     const response = await fetch(fetchURL);
     if (!response.ok) {
-        console.log('Initial deck data not loaded, deck is not initialized yet.');
+        console.log('Initial deck data not loaded for deck ' + deck + ', deck is not initialized yet.');
         return JSON.stringify({})
     }
     const data = await response.text();
-    console.log('Initial deck data loaded.');
+    console.log('Initial deck data loaded for deck ' + deck + '.');
     return data;
 }
 
-async function fetchChannelData(deck) {
-    switch(deck)
-    {
-        case 'A':
-            channel = 1;
-            break;
-        case 'B':
-            channel = 2;
-            break;
-        case 'C':
-            channel = 3;
-            break;
-        case 'D':
-            channel = 4;
-            break;
-        default:
-            console.error('Channel cannot be handled for deck ' + deck);
-            return;
-    }
-
+async function fetchChannelData(channel) {
     fetchURL = location.protocol + '//' + location.host + '/channel/' + channel;
     const response = await fetch(fetchURL);
     if (!response.ok) {
-        console.log('Initial channel data not loaded, deck is not initialized yet.');
+        console.log('Initial channel data not loaded for channel ' + channel + ', channel is not initialized yet.');
         return JSON.stringify({})
     }
     const data = await response.text();
-    console.log('Initial channel data loaded.');
+    console.log('Initial channel data loaded for channel ' + channel + '.');
     return data;
 }
 
@@ -101,7 +99,38 @@ async function fetchWsInfo() {
     return data;
 }
 
+async function fetchConfig() {
+    fetchURL = location.protocol + '//' + location.host + '/config/';
+    const response = await fetch(fetchURL);
+    const data = await response.text();
+    console.log('Configuration information obtained.')
+    return data;
+}
+
+function setChannel() {
+    switch(thisDeck)
+    {
+        case config.channel_1:
+            thisChannel = '1';
+            break;
+        case config.channel_2:
+            thisChannel = '2';
+            break;
+        case config.channel_3:
+            thisChannel = '3';
+            break;
+        case config.channel_4:
+            thisChannel = '4';
+            break;
+        default:
+            console.error('Channel cannot be handled for deck ' + thisDeck + '.');
+            return;
+    }
+}
+
 function main(){
+    MEDIA_URI = config.media_uri;
+    setChannel();
     player = createPlayer();                
     loadDeckVideo();
     checkCurrentScene();
@@ -118,14 +147,14 @@ function createPlayer() {
     player = document.createElement('video');
     player.muted = true;
     player.autoplay = false;
-    player.id = deck; // Not used but available
+    player.id = thisDeck; // Not used but available
     document.getElementById('container').appendChild(player);
     return player;
 }
 
 function loadDeckVideo() {
-    var filepath = deckData.filePath;
-    if (filepath == undefined)
+    var filepath = deckData[thisDeck].filePath;
+    if (filepath === "" || filepath === undefined)
     {
         console.log('Deck has no filepath yet, not loading video.');
         return;
@@ -151,38 +180,56 @@ function loadDeckVideo() {
             break;
         }
     }
-    player.currentTime = deckData.elapsedTime;
-    player.playbackRate = deckData.tempo;
-    player.defaultPlaybackRate = deckData.tempo;
-    if (deckData.isPlaying && !player.playing)
-        // This is so fast we don't even need to check for 'HTMLMediaElement.HAVE_ENOUGH_DATA'.
+    player.currentTime = deckData[thisDeck].elapsedTime;
+    player.playbackRate = deckData[thisDeck].tempo;
+    player.defaultPlaybackRate = deckData[thisDeck].tempo;
+    if (deckData[thisDeck].isPlaying && !player.playing && player.readyState == HTMLMediaElement.HAVE_ENOUGH_DATA)
         // Every tick is checked for play status so if for any reason it fails here, then it will begin playing the next tick.
         player.play();
 }
 
 function checkCurrentScene() {
-    sceneName = 'Deck ' + deck;
-    if(window.obsstudio) {
-        currentSceneName = window.obsstudio.getCurrentScene();
-        if (sceneName != currentSceneName && onAir)
-            window.obsstudio.setCurrentScene('Deck ' + deck);
-    }
 
-    /*  TODO FIX - This may require a PR for https://github.com/ErikMinekus/traktor-api-client
-        'isOnAir' as TRUE is broadcasted for every channel that is LIVE at Traktor.
-        So a fighting between scenes may occur at startup if there are multiple 'onAir'.    
-    */
+    for (let channelId in channelData) {
+        var deckId = config['channel_' + channelId];
+        var isPlaying = deckData[deckId].isPlaying;
+        var isOnAir = channelData[channelId].isOnAir;
+        var onAirLevelState = channelData[channelId].onAirLevelState;
+        var loudestOnAirLevelState = null;
+        var loudestChannelId = null;
+        if (isPlaying && isOnAir) {
+            if (onAirLevelState > loudestOnAirLevelState) {
+                loudestOnAirLevelState = onAirLevelState;
+                loudestChannelId = channelId;
+            }          
+        }
+    }           
+
+    if (loudestChannelId != null) {
+        deckId = config['channel_' + loudestChannelId]
+        console.log('Loudest Channel is ' + loudestChannelId + ' for Deck ' + deckId);
+        
+        if(window.obsstudio && config.auto_scene) {
+            currentSceneName = window.obsstudio.getCurrentScene();
+            sceneName = 'Deck ' + deckId;
+
+            if (deckId == thisDeck && currentSceneName != sceneName)
+                window.obsstudio.setCurrentScene(sceneName);
+        }
+    }
+    else
+        console.log('No playing Loudest Channel to set as Current Scene.' );
 }
 
-function updateDeckData(data) {
+function updateDeckData(id, data) {
     Object.keys(data).forEach(function(key) {
-        deckData[key] = data[key];
+        deckData[id][key] = data[key];
     });
 }
 
-function updateChannelData(data) {
+function updateChannelData(id, data) {
     Object.keys(data).forEach(function(key) {
-        channelData[key] = data[key];
+        channelData[id][key] = data[key];
     });
 }
 
@@ -193,82 +240,80 @@ function updateMasterClockData(data) {
 }
 
 function processDeckLoaded(id, data) {
-    if (id != deck) {
-        console.log("Skipping this broadcast, it's for deck " + id + " and this is the player for deck " + deck + ".");
+    updateDeckData(id, data);
+
+    if (id != thisDeck) {
+        console.log("Skipping video load, broadcast is for deck " + id + " and this is the player for deck " + thisDeck + ".");
         return;
     }
-    updateDeckData(data);
     loadDeckVideo();
+    checkCurrentScene();
 }
 
 function processUpdateDeck(id, data) {
-    if (id != deck) {
-        console.log("Skipping this broadcast, it's for deck " + id + " and this is the player for deck " + deck + ".");
+    updateDeckData(id, data);
+
+    if (id != thisDeck) {
+        console.log("Skipping processing deck update, broadcast is for deck " + id + " and this is the player for deck " + thisDeck + ".");
         return;
     }
-    updateDeckData(data);
 
     if (!player || player.readyState != HTMLMediaElement.HAVE_ENOUGH_DATA) {
         console.warn("Player without enough media data to process, skipping tick.")
         return;
     }
 
-    if (!player.playing && deckData.isPlaying && player.readyState == HTMLMediaElement.HAVE_ENOUGH_DATA) {
+    if (!player.playing && deckData[thisDeck].isPlaying) {
         console.log("Player should be playing and is not, now playing.")
         player.play();
     }
 
-    if (player.playing && !deckData.isPlaying && player.readyState == HTMLMediaElement.HAVE_ENOUGH_DATA) {
+    if (player.playing && !deckData[thisDeck].isPlaying) {
         console.log("Player should be paused and is not, now pausing.")
         player.pause();
     }
 
-    // Allow a maximum of 300ms of desync
-    var driftSeconds = 0.3
-
     if (player.playing && 
-        deckData.elapsedTime && 
-        Math.abs(deckData.elapsedTime - player.currentTime) > driftSeconds &&
-        deckData.elapsedTime < player.duration && deckData.elapsedTime > 0) {
+        deckData[thisDeck].elapsedTime && 
+        Math.abs(deckData[thisDeck].elapsedTime - player.currentTime) > config.max_delay_ms/1000 &&
+        deckData[thisDeck].elapsedTime < player.duration && deckData[thisDeck].elapsedTime > 0) {
 
-        console.log("Desync of " + Math.abs(deckData.elapsedTime - player.currentTime)*1000 + "ms\nData time: " + deckData.elapsedTime + "s\nCurrent time: " + player.currentTime + "s");
+        console.log("Desync of " + Math.abs(deckData[thisDeck].elapsedTime - player.currentTime)*1000 + "ms\nData time: " + deckData[thisDeck].elapsedTime + "s\nCurrent time: " + player.currentTime + "s");
         console.log("Resyncing...")
-        player.currentTime = deckData.elapsedTime;
+        player.currentTime = deckData[thisDeck].elapsedTime;
     }
 
-    if (deckData.tempo != player.playbackRate) {
-        player.playbackRate = deckData.tempo;
-        player.defaultPlaybackRate = deckData.tempo;
+    if (deckData[thisDeck].tempo != player.playbackRate) {
+        player.playbackRate = deckData[thisDeck].tempo;
+        player.defaultPlaybackRate = deckData[thisDeck].tempo;
     }
+
+    checkCurrentScene();
 }
 
 
 function processUpdateChannel(id, data) {
-    if (id != channel) {
-        console.log("Skipping this broadcast, it's for channel " + id + " and this is the player for channel " + channel + ".");
-        return;
-    }
-    updateChannelData(data);
-
-    if (onAir != channelData.isOnAir) {
-        onAir = channelData.isOnAir
-        if (onAir)
-            if(window.obsstudio)
-                window.obsstudio.setCurrentScene('Deck ' + deck);
-    }
-
-    /*  TODO FIX - This may require a PR for https://github.com/ErikMinekus/traktor-api-client
-        The latest channel to broadcast 'isOnAir' as TRUE will be the active OBS scene.
-        A better way to handle this would be to know the value of the crossfader and set the
-        current scene if it's 60% or higher towards the channel but this data is not being
-        sent by the 'traktor-api-client'.
-    */
+    updateChannelData(id, data);
+    checkCurrentScene();
 }
 
 function processMasterClock(data) {
     updateMasterClockData(data);
 
     // TODO - What do we even use this for?
+}
+
+function processToggleOBS(data) {
+    var setStatus = data.status;
+
+    if (setStatus == 'enable') {
+        config.auto_scene = 1;
+        console.log('OBS automatic scene change enabled.');
+    }
+    if (setStatus == 'disable') {
+        config.auto_scene = 0;
+        console.log('OBS automatic scene change disabled.');
+    }
 }
 
 function processWsData(data)
@@ -292,6 +337,9 @@ function processWsData(data)
             break;
         case 'updateMasterClock':
             processMasterClock(jsonData.data);
+            break;
+        case 'toggleOBS':
+            processToggleOBS(jsonData.data);
             break;
         default:
             console.error('Event ' + eventName + ' not recognized.');

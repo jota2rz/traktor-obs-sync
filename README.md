@@ -28,6 +28,7 @@ Running this in a separate computer than Traktor is possible!
 - Configure one scene per deck you want to handle in OBS and name it as `Deck {deck}`. e.g. `Deck A` and `Deck B`.
 - Inside each scene create a browser source with any name, point it to the endpoint `/player/{deck}` and Page permissions to `Advanced access to OBS`. e.g. `http://localhost:8080/player/A` and `http://localhost:8080/player/B`
 - Start mixing in Traktor Pro 3 and you will see how each scene displays each deck video in sync and the active scene transitions automatically based of Traktor crossfader.
+- If you need to enable or disable the OBS automatic scene change when the program is running, while focused in the console press `E` to enable or press `D` to disable.
 
 ### Without OBS
 - Follow the instructions above up to opening Traktor Pro 3.
@@ -52,6 +53,7 @@ The HTTP server contains these endpoints (By default at port 8080):
 - `/channel/{channel}` - GET channel data as JSON.
 - `/masterClock/` - GET master clock data as JSON.
 - `/ws/` - GET the websocket server address and port as JSON.
+- `/config/` - GET configuration required for HTML player.
 
 The following is used by `traktor-api-client` and you should not send data manually or from other applications.
 - `/deckLoaded/{deck}` - POST new deck loaded data from Traktor.
@@ -69,6 +71,11 @@ With `id` for `deckLoaded`, `updateDeck` and `updateChannel` events:
 Without `id` for `updateMasterClock` event:
 ```
 { "event": "<EVENT NAME SAME AS POST ENDPOINTS>", "data": <JSON DATA FROM TRAKTOR> }
+```
+
+Special broadcast for HTML player to toggle OBS automatic scene change at runtime:
+```
+{ "event": "toggleOBS", "status": "<enable/disable>" }
 ```
 
 ## Troubleshooting
