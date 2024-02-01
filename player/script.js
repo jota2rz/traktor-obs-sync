@@ -189,97 +189,25 @@ function loadDeckVideo() {
 }
 
 function checkCurrentScene() {
-    var leftChannels = [];
-    var rightChannels = [];
-    var priorityChannelGroup = 'None';
-    var xfaderAdjust = channelData[thisChannel].xfaderAdjust;
 
     for (let channelId in channelData) {
         var deckId = config['channel_' + channelId];
         var isPlaying = deckData[deckId].isPlaying;
         var isOnAir = channelData[channelId].isOnAir;
+        var onAirLevelState = channelData[channelId].onAirLevelState;
+        var loudestOnAirLevelState = null;
+        var loudestChannelId = null;
         if (isPlaying && isOnAir) {
-            if (channelData[channelId].xfaderAssignLeft)
-                leftChannels.push(channelId);
-            if (channelData[channelId].xfaderAssignRight) 
-                rightChannels.push(channelId);                
+            if (onAirLevelState > loudestOnAirLevelState) {
+                loudestOnAirLevelState = onAirLevelState;
+                loudestChannelId = channelId;
+            }          
         }
-    }
+    }           
 
-    if (leftChannels.length != 0)
-        console.log('Left Channels Playing: ' + leftChannels);
-    else
-        console.log('Left Channels Playing: None');
-
-    if (rightChannels.length != 0)
-        console.log('Right Channels Playing: ' + rightChannels)
-    else
-        console.log('Right Channels Playing: None');
-
-    if (xfaderAdjust < 0.5)
-        priorityChannelGroup = 'Left';
-
-    if (xfaderAdjust > 0.5)
-        priorityChannelGroup = 'Right';
-
-    let maxLeftVolume = 0;
-    let maxLeftChannel = 'None';
-    leftChannels.forEach((channelId) => {
-        if(channelData[channelId].volume > maxLeftVolume) {
-            maxLeftVolume  = channelData[channelId].volume;
-            maxLeftChannel = channelId;
-        }
-    });
-
-    let maxRightVolume = 0;
-    let maxRightChannel = 'None';
-    rightChannels.forEach((channelId) => {
-        if(channelData[channelId].volume > maxRightVolume) {
-            maxRightVolume  = channelData[channelId].volume;
-            maxRightChannel = channelId;
-        }
-    });
-
-    console.log('Priority Channel Group: ' + priorityChannelGroup);
-    console.log('Priority Left Channel: ' + maxLeftChannel);
-    console.log('Priority Right Channel: ' + maxRightChannel);
-
-    var priorityChannel = 'None'
-
-    if (priorityChannelGroup == 'Left') {
-        if (maxLeftChannel != 'None')
-            priorityChannel = maxLeftChannel;
-        else if (maxRightChannel != 'None')
-        {
-            console.log('Left Channel is priority but setting current priority to Right Channel because there is nothing playing in Left Channel.');
-            priorityChannel = maxRightChannel;
-        }
-    }
-
-    if (priorityChannelGroup == 'Right') {
-        if (maxRightChannel != 'None')
-            priorityChannel = maxRightChannel;
-        else if (maxLeftChannel != 'None')
-        {
-            console.log('Right Channel is priority but setting current priority to Left Channel because there is nothing playing in Right Channel.');
-            priorityChannel = maxLeftChannel;
-        }
-    }
-
-    if (priorityChannelGroup == 'None')
-        if (maxRightChannel != 'None' && maxLeftChannel == 'None')
-            priorityChannel = maxRightChannel;
-        else if (maxLeftChannel != 'None' && maxRightChannel == 'None')
-            priorityChannel = maxLeftChannel;
-        else if (maxLeftChannel != 'None' && maxRightChannel != 'None')
-            if (maxLeftVolume > maxRightVolume)
-                priorityChannel = maxLeftChannel;
-            else if (maxLeftVolume < maxRightVolume)
-                priorityChannel = maxRightChannel;            
-
-    if (priorityChannel != 'None') {
-        deckId = config['channel_' + priorityChannel]
-        console.log('Priority Channel is ' + priorityChannel + ' for Deck ' + deckId);
+    if (loudestChannelId != null) {
+        deckId = config['channel_' + loudestChannelId]
+        console.log('Loudest Channel is ' + loudestChannelId + ' for Deck ' + deckId);
         
         if(window.obsstudio && config.auto_scene) {
             currentSceneName = window.obsstudio.getCurrentScene();
@@ -290,7 +218,7 @@ function checkCurrentScene() {
         }
     }
     else
-        console.log('No Priority Channel to set as Current Scene.' );
+        console.log('No playing Loudest Channel to set as Current Scene.' );
 }
 
 function updateDeckData(id, data) {
