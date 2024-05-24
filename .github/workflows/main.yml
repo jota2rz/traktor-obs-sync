@@ -79,10 +79,10 @@ jobs:
           python-version: 3.12
 
       - name: Download Python Prerequisites
-        run: 'pip download --platform macosx_10_9_universal2 --only-binary=:all: --no-cache-dir -r requirements.txt pyinstaller --dest /tmp/macosx_10_9_universal2'
+        run: 'pip download --platform=macosx_10_9_universal2 --platform=macosx_10_13_universal2 --only-binary=:all: --no-cache-dir -r requirements.txt pyinstaller --dest /tmp/macosx_universal2'
         
       - name: Install Python Prerequisites
-        run: 'pip install --only-binary=:all: --no-cache-dir --no-index --find-links /tmp/macosx_10_9_universal2 -r requirements.txt pyinstaller'
+        run: 'pip install --upgrade --only-binary=:all: --no-cache-dir --no-index --find-links /tmp/macosx_universal2 -r requirements.txt pyinstaller'
 
       - name: Run PyInstaller
         run: pyinstaller main.py --distpath . --onefile --name traktor-obs-sync --target-arch universal2
