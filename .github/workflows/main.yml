@@ -88,7 +88,10 @@ jobs:
           python3 -c "import struct; print(f'Pointer size: {struct.calcsize(\"P\") * 8}-bit')"
 
       - name: Install Python Prerequisites
-        run: python3 -m pip install -r requirements.txt pyinstaller
+        run: |
+          export ARCHFLAGS="-arch arm64 -arch x86_64"
+          python3 -m pip install --no-binary :all: -r requirements.txt
+          python3 -m pip install pyinstaller
 
       - name: Run PyInstaller
         run: python3 -m PyInstaller main.py --distpath . --onefile --name traktor-obs-sync --target-arch universal2
