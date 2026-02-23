@@ -66,61 +66,36 @@ jobs:
             media
             config.ini
   macos-build:
-    name: 'macOS (${{ matrix.arch }})'
-    runs-on: ${{ matrix.runner }}
+    name: 'macOS'
+    runs-on: macos-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-    strategy:
-      matrix:
-        include:
-          - runner: macos-13
-            arch: x86_64
-          - runner: macos-latest
-            arch: arm64
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+      - name: Install Universal2 Python from python.org
+        run: |
+          PYTHON_VERSION="3.13.2"
+          PKG_NAME="python-${PYTHON_VERSION}-macos11.pkg"
+          curl -sSL "https://www.python.org/ftp/python/${PYTHON_VERSION}/${PKG_NAME}" -o "/tmp/${PKG_NAME}"
+          sudo installer -pkg "/tmp/${PKG_NAME}" -target /
+          echo "/Library/Frameworks/Python.framework/Versions/3.13/bin" >> $GITHUB_PATH
+
+      - name: Verify Universal2 Python
+        run: |
+          python3 --version
+          file $(which python3)
+          python3 -c "import struct; print(f'Pointer size: {struct.calcsize(\"P\") * 8}-bit')"
 
       - name: Install Python Prerequisites
-        run: pip install -r requirements.txt pyinstaller
+        run: python3 -m pip install -r requirements.txt pyinstaller
 
       - name: Run PyInstaller
-        run: pyinstaller main.py --distpath . --onefile --name traktor-obs-sync
+        run: python3 -m PyInstaller main.py --distpath . --onefile --name traktor-obs-sync --target-arch universal2
 
-      - name: Upload Arch Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: traktor-obs-sync-macOS-${{ matrix.arch }}
-          path: traktor-obs-sync
-
-  macos-universal:
-    name: 'macOS Universal Binary'
-    runs-on: macos-latest
-    needs: macos-build
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Download arm64 Binary
-        uses: actions/download-artifact@v4
-        with:
-          name: traktor-obs-sync-macOS-arm64
-          path: arm64
-
-      - name: Download x86_64 Binary
-        uses: actions/download-artifact@v4
-        with:
-          name: traktor-obs-sync-macOS-x86_64
-          path: x86_64
-
-      - name: Create Universal Binary with lipo
+      - name: Verify Universal Binary
         run: |
-          chmod +x arm64/traktor-obs-sync x86_64/traktor-obs-sync
-          lipo -create -output traktor-obs-sync arm64/traktor-obs-sync x86_64/traktor-obs-sync
+          file traktor-obs-sync
           lipo -info traktor-obs-sync
 
       - name: Upload Artifacts
@@ -132,10 +107,3 @@ jobs:
             player
             media
             config.ini
-
-      - name: Delete Intermediate Artifacts
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: |
-            traktor-obs-sync-macOS-arm64
-            traktor-obs-sync-macOS-x86_64
