@@ -362,16 +362,37 @@ function defineWebsocketEvents(ws) {
 
 function startWsClient(ws_create){
     let ws = ws_create();
+    let reconnectInterval = null;
+    let isReconnecting = false;
+
     function startReconnecting(){
-        let interval = setInterval(()=>{
+        // Prevent multiple reconnection loops from stacking
+        if (isReconnecting) return;
+        isReconnecting = true;
+
+        reconnectInterval = setInterval(()=>{
             console.log('Websocket connection closed.\nReconnecting...');
+
+            // Close any pending connection before creating a new one
+            if (ws) {
+                ws.onopen = null;
+                ws.onclose = null;
+                ws.onerror = null;
+                ws.onmessage = null;
+                if (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+            }
+
             ws = ws_create();
             ws.onopen = () => {
                 console.log('Websocket connection open.');
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+                isReconnecting = false;
                 ws.onclose = startReconnecting;
                 defineWebsocketEvents(ws);
-                clearInterval(interval);
-            }
+            };
         }, 3000);
     }
     ws.onclose = startReconnecting;
