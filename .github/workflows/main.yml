@@ -8,17 +8,17 @@ on:
 
 jobs:
   windows-build:
-    name: 'Windows Latest'
+    name: 'Windows'
     runs-on: windows-latest
-    if: contains(github.event.head_commit.message, '[skip ci]') != true
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Python 3.12
+      - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: '3.13'
 
       - name: Install Python Prerequisites
         run: pip install -r requirements.txt pyinstaller
@@ -37,17 +37,17 @@ jobs:
             media
             config.ini
   linux-build:
-    name: 'Ubuntu Latest'
+    name: 'Linux'
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[skip ci]') != true
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Python 3.12
+      - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: '3.13'
 
       - name: Install Python Prerequisites
         run: pip install -r requirements.txt pyinstaller
@@ -58,7 +58,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: traktor-obs-sync-Ubuntu
+          name: traktor-obs-sync-Linux
           path: |
             traktor-obs-sync*
             !*.spec
@@ -66,34 +66,76 @@ jobs:
             media
             config.ini
   macos-build:
-    name: 'macOS Latest'
-    runs-on: macos-latest
-    if: contains(github.event.head_commit.message, '[skip ci]') != true
+    name: 'macOS (${{ matrix.arch }})'
+    runs-on: ${{ matrix.runner }}
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    strategy:
+      matrix:
+        include:
+          - runner: macos-13
+            arch: x86_64
+          - runner: macos-latest
+            arch: arm64
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Python 3.12
+      - name: Install Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: '3.13'
 
-      - name: Download Python Prerequisites
-        run: 'pip download --platform=macosx_10_9_universal2 --platform=macosx_10_13_universal2 --only-binary=:all: --no-cache-dir -r requirements.txt pyinstaller --dest /tmp/macosx_universal2'
-        
       - name: Install Python Prerequisites
-        run: 'pip install --upgrade --only-binary=:all: --no-cache-dir --no-index --find-links /tmp/macosx_universal2 -r requirements.txt pyinstaller'
+        run: pip install -r requirements.txt pyinstaller
 
       - name: Run PyInstaller
-        run: pyinstaller main.py --distpath . --onefile --name traktor-obs-sync --target-arch universal2
+        run: pyinstaller main.py --distpath . --onefile --name traktor-obs-sync
+
+      - name: Upload Arch Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: traktor-obs-sync-macOS-${{ matrix.arch }}
+          path: traktor-obs-sync
+
+  macos-universal:
+    name: 'macOS Universal Binary'
+    runs-on: macos-latest
+    needs: macos-build
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download arm64 Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: traktor-obs-sync-macOS-arm64
+          path: arm64
+
+      - name: Download x86_64 Binary
+        uses: actions/download-artifact@v4
+        with:
+          name: traktor-obs-sync-macOS-x86_64
+          path: x86_64
+
+      - name: Create Universal Binary with lipo
+        run: |
+          chmod +x arm64/traktor-obs-sync x86_64/traktor-obs-sync
+          lipo -create -output traktor-obs-sync arm64/traktor-obs-sync x86_64/traktor-obs-sync
+          lipo -info traktor-obs-sync
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: traktor-obs-sync-MacOS
+          name: traktor-obs-sync-macOS
           path: |
-            traktor-obs-sync*
-            !*.spec
+            traktor-obs-sync
             player
             media
             config.ini
+
+      - name: Delete Intermediate Artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            traktor-obs-sync-macOS-arm64
+            traktor-obs-sync-macOS-x86_64
