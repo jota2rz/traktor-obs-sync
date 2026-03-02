@@ -30,7 +30,7 @@ jobs:
         run: pyinstaller main.py --distpath . --onefile --name traktor-obs-sync
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: traktor-obs-sync-Windows
           path: |
@@ -59,7 +59,7 @@ jobs:
         run: pyinstaller main.py --distpath . --onefile --name traktor-obs-sync
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: traktor-obs-sync-Linux
           path: |
@@ -105,7 +105,7 @@ jobs:
           lipo -info traktor-obs-sync
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: traktor-obs-sync-macOS
           path: |
